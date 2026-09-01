@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAMAAN — Secure Police Case & Document Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --bg: #10141A;
+      --panel: #171C24;
+      --panel-2: #1D232D;
+      --line: #2A313C;
+      --ink: #E8EBEF;
+      --ink-dim: #8892A0;
+      --ink-faint: #5B6472;
+      --seal: #3ECF8E;
+      --seal-dim: #1F3B2F;
+      --amber: #E3A73E;
+      --alert: #E0654F;
+      --purple: #8B5CF6;
+      --blue: #38BDF8;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg); color: var(--ink);
+      font-family: var(--sans); min-height: 100vh;
+      display: flex;
+    }
+    .sidebar {
+      width: 260px; flex-shrink: 0;
+      background: var(--panel); border-right: 1px solid var(--line);
+      display: flex; flex-direction: column; padding: 22px 0;
+      z-index: 10;
+    }
+    .brand { padding: 0 20px 20px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+    .brand .mark {
+      font-family: var(--mono); font-weight: 700; font-size: 19px;
+      letter-spacing: 1px; color: var(--seal);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--seal); box-shadow: 0 0 8px var(--seal); }
+    .brand .sub { font-size: 10px; color: var(--ink-faint); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
+    .nav button {
+      all: unset; cursor: pointer; padding: 11px 12px; border-radius: 6px;
+      font-size: 13px; color: var(--ink-dim); display: flex; align-items: center;
+      gap: 10px; transition: 0.15s;
+    }
+    .nav button .num { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); width: 18px; }
+    .nav button:hover { background: var(--panel-2); color: var(--ink); }
+    .nav button.active { background: var(--seal-dim); color: var(--seal); font-weight: 600; }
+    .nav button.active .num { color: var(--seal); }
+    .case-chip { margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--line); }
+    .case-chip .lbl { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; }
+    .case-chip .val { font-family: var(--mono); font-size: 13px; color: var(--amber); margin-top: 3px; font-weight: 600; }
+    main { flex: 1; padding: 34px 42px; overflow-y: auto; max-width: 1180px; z-index: 5; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+    .page-head h1 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+    .page-head p { margin: 0; color: var(--ink-dim); font-size: 13px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px; margin-bottom: 18px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px; }
+    label { display: block; font-size: 11.5px; color: var(--ink-dim); margin-bottom: 6px; text-transform: uppercase; font-weight: 600; }
+    input, select {
+      width: 100%; background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--ink); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px;
+    }
+    .btn {
+      all: unset; cursor: pointer; background: var(--seal); color: #0A1510;
+      font-weight: 600; font-size: 13px; padding: 11px 20px; border-radius: 6px;
+      display: inline-flex; align-items: center; gap: 8px; transition: 0.15s;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn.secondary { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); }
+    .btn.amber { background: var(--amber); color: #221800; }
+    .btn.purple { background: #7C3AED; color: #FFFFFF; }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+    .stat .n { font-family: var(--mono); font-size: 24px; color: var(--seal); font-weight: 600; }
+    .stat .l { font-size: 11.5px; color: var(--ink-dim); margin-top: 2px; }
+    
+    .entity-switcher {
+      display: flex; gap: 8px; margin-bottom: 16px; background: var(--panel); padding: 6px; border-radius: 8px; border: 1px solid var(--line); width: fit-content;
+    }
+    .entity-tab-btn {
+      all: unset; cursor: pointer; padding: 7px 14px; border-radius: 5px; font-size: 12.5px; font-family: var(--mono); color: var(--ink-dim); transition: 0.15s;
+    }
+    .entity-tab-btn.active {
+      background: var(--panel-2); color: var(--amber); font-weight: 600; border: 1px solid var(--line);
+    }
+    .entity-tab-btn.victim-active {
+      background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 600; border: 1px solid #0284C7;
+    }
+    .entity-tab-btn.doc-active {
+      background: rgba(139, 92, 246, 0.18); color: #C4B5FD; font-weight: 600; border: 1px solid #7C3AED;
+    }
+
+    .ev-row {
+      display: grid; grid-template-columns: 140px 1fr 170px 140px 110px;
+      gap: 14px; align-items: center; padding: 13px 14px; border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .ev-row.head { color: var(--ink-faint); font-size: 10.5px; text-transform: uppercase; font-weight: 600; }
+    .tag { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-family: var(--mono); text-transform: uppercase; display: inline-block; font-weight: 600; }
+    .tag.fir { background: #1C2738; color: #58A6FF; border: 1px solid #1F6FEB; }
+    .tag.statement { background: #262138; color: #D2A8FF; border: 1px solid #8957E5; }
+    .tag.seizure { background: #2B2317; color: #E3B341; border: 1px solid #9E6A03; }
+    .tag.fsl { background: #1B2B23; color: #3FB950; border: 1px solid #238636; }
+    .tag.chargesheet { background: #331A1E; color: #FFA198; border: 1px solid #DA3633; }
+    .tag.tampered { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1px solid #EF4444; }
+    .hash { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+    .verified { color: var(--seal); font-family: var(--mono); font-size: 11px; }
+
+    .tline { position: relative; padding-left: 26px; }
+    .tline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 1px; background: var(--line); }
+    .tl-item { position: relative; padding-bottom: 22px; }
+    .tl-item::before { content: ""; position: absolute; left: -25px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--seal); border: 2px solid var(--bg); }
+    .tl-time { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-bottom: 3px; }
+    .tl-body { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+    
+    .log-row {
+      display: grid; grid-template-columns: 160px 140px 1fr 160px;
+      gap: 14px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 12.5px;
+    }
+    .log-row.head { color: var(--ink-faint); font-size: 10.5px; text-transform: uppercase; font-weight: 600; }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--panel-2);
+      border: 1px solid var(--seal); color: var(--ink); padding: 12px 18px; border-radius: 8px;
+      font-size: 13px; display: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+  
+  <div id="bg-slideshow"></div>
+  <div class="bg-overlay"></div>
+<div class="sidebar">
+  <div class="brand">
+    <div class="mark"><span class="dot"></span>PRAMAAN</div>
+    <div class="sub">Legal DMS & Digital Forensics</div>
+  </div>
+  <div class="nav">
+    <button type="button" class="active" onclick="switchTab('setup')"><span class="num">01</span>Case Initiation</button>
+    <button type="button" onclick="switchTab('collect')"><span class="num">02</span>Evidence Ingestion</button>
+    <button type="button" onclick="switchTab('vault')"><span class="num">03</span>Digital Case Vault</button>
+    <button type="button" onclick="switchTab('timeline')"><span class="num">04</span>Investigation Trail</button>
+    <button type="button" onclick="switchTab('graph')"><span class="num">05</span>Evidence Flow Map</button>
+    <button type="button" onclick="switchTab('custody')"><span class="num">06</span>Chain of Custody</button>
+    <button type="button" onclick="switchTab('report')"><span class="num">07</span>Court e-Dossier</button>
+  </div>
+  <div class="case-chip" id="caseChip" style="display:none;">
+    <div class="lbl">Active FIR / Case</div>
+    <div class="val" id="caseChipVal">—</div>
+  </div>
+</div>
+
+<main>
+  <!-- 01 Case Setup -->
+  <section id="tab-setup">
+    <div class="page-head">
+      <div>
+        <h1>Case Registration & Investigation Parameters</h1>
+        <p>Enter the case parameters, police jurisdiction, and legal statutes.</p>
+      </div>
+    </div>
+    <div class="card" style="max-width:740px;">
+      <div class="grid2">
+        <div>
+          <label>Investigating Officer (IO Name)</label>
+          <input id="inInvestigator" placeholder="e.g. Inspector Rajesh Kumar">
+        </div>
+        <div>
+          <label>Officer Badge / ID Number</label>
+          <input id="inBadge" placeholder="e.g. DL-CY-8841">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Police Station / Department</label>
+          <input id="inStation" placeholder="e.g. Cyber Crime Police Station">
+        </div>
+        <div>
+          <label>Under Sections (IT Act / BNS)</label>
+          <input id="inSections" placeholder="e.g. Sec 66 IT Act, Sec 318(4) BNS">
+        </div>
+      </div>
+      
+      <div class="grid2">
+        <div>
+          <label>Primary Accused / Suspect Name</label>
+          <input id="inHandle" placeholder="e.g. Vikram Malhotra">
+        </div>
+        <div>
+          <label>Complainant / Reporting Party</label>
+          <input id="inVictim" placeholder="e.g. State Cyber Cell / Neha Verma">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>FIR / Case Reference Number</label>
+          <input id="inFirNum" placeholder="e.g. FIR No. 412/2026">
+        </div>
+        <div>
+          <label>Court Warrant / Authorization Ref</label>
+          <input id="inNotes" placeholder="e.g. Court Warrant Order CRI-402/2026">
+        </div>
+      </div>
+
+      <button type="button" class="btn" onclick="initiateCaseAction()">Register Case & Open Secure Vault →</button>
+    </div>
+  </section>
+
+  <!-- 02 Ingestion Hub -->
+  <section id="tab-collect" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Evidence Ingestion & Cryptographic Sealing</h1>
+        <p>Digitize case documents, generate binary SHA-256 signatures, and seal into immutable ledger.</p>
+      </div>
+      <button type="button" class="btn" id="btnCollect" onclick="runCollectionAction()">Run Automated Ingestion & Hash Seal ⤓</button>
+    </div>
+    <div class="card">
+      <div id="collectLog" style="color:var(--ink-faint); text-align:center; padding:40px 20px; font-size:13.5px;">
+        Click <b>Run Automated Ingestion & Hash Seal</b> to cryptographically lock all case records and physical seizure assets.
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 Case Vault -->
+  <section id="tab-vault" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Secure Digital Case & Evidence Vault</h1>
+        <p>Section 63B BSA Cryptographically Verified Asset Repository</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <select id="roleSelect" onchange="switchUserRole(this.value)" style="margin-bottom:0; padding:8px 10px; font-size:12px; width:auto;">
+          <option value="INVESTIGATING_OFFICER">View As: Investigating Officer (IO)</option>
+          <option value="SHO">View As: Station House Officer (SHO)</option>
+          <option value="FORENSIC_EXAMINER">View As: Forensic Lab Examiner</option>
+          <option value="PUBLIC_PROSECUTOR">View As: Public Prosecutor</option>
+          <option value="JUDGE">View As: Judicial Magistrate</option>
+        </select>
+        <button type="button" class="btn secondary" onclick="verifyHashesAction()">⚡ Verify All Hashes</button>
+        <button type="button" class="btn" onclick="switchTab('timeline')">View Audit Trail →</button>
+      </div>
+    </div>
+
+    <!-- Live Document Upload Panel -->
+    <div class="card" style="border:1px dashed var(--purple); background:rgba(139,92,246,0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-weight:600; font-size:13px; color:#C4B5FD;">📄 Deposit New Case Record / Digital Evidence File</span>
+        <span style="font-size:11px; font-family:var(--mono); color:var(--ink-dim);">Automated SHA-256 Binary Seal</span>
+      </div>
+      <div class="grid3" style="align-items:center;">
+        <div>
+          <select id="inDocType" style="margin-bottom:0;">
+            <option value="Witness Statement (Sec 180 BNSS)">Witness Statement (Sec 180 BNSS)</option>
+            <option value="Accused Interrogation Record">Accused Interrogation Record (Sec 182 BNSS)</option>
+            <option value="Evidence Seizure Memo Addendum">Evidence Seizure Memo Addendum</option>
+            <option value="FSL Forensic Lab Supplement">FSL Forensic Lab Supplement</option>
+            <option value="Judicial Custody / Bail Order">Judicial Custody / Bail Order</option>
+            <option value="Supplementary Charge Sheet">Supplementary Charge Sheet (Sec 193 BNSS)</option>
+          </select>
+        </div>
+        <div>
+          <input type="file" id="inDocFile" style="margin-bottom:0; padding:7px;">
+        </div>
+        <div>
+          <button type="button" class="btn purple" style="width:100%; justify-content:center;" onclick="handleManualDocUpload(event)">Upload & Seal Document</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entity Switcher Bar -->
+    <div class="entity-switcher">
+      <button type="button" id="btnVaultDocs" class="entity-tab-btn doc-active" onclick="switchVaultView('documents')"> Case Documents (FIR / Statements / Charge Sheet)</button>
+      <button type="button" id="btnVaultSuspect" class="entity-tab-btn" onclick="switchVaultView('suspect')"> Seized Physical & Digital Assets</button>
+      <button type="button" id="btnVaultVictim" class="entity-tab-btn" onclick="switchVaultView('victim')"> Complainant & Lab Audit Records</button>
+    </div>
+
+    <div class="stat-row" id="vaultStats"></div>
+    <div class="card" style="padding:0;">
+      <div class="ev-row head">
+        <div>Record Type</div><div>Asset Title & Description</div><div>SHA-256 Digital Hash Seal</div><div>Sealed Timestamp</div><div>Tamper Check</div>
+      </div>
+      <div id="evList"></div>
+    </div>
+  </section>
+
+  <!-- 04 Investigation Trail -->
+  <section id="tab-timeline" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Investigation Case Audit Trail</h1>
+        <p>Chronological sequence of police actions, witness statements, seizures, and court filings.</p>
+      </div>
+      <button type="button" class="btn" onclick="switchTab('graph')">View Evidence Map →</button>
+    </div>
+
+    <div class="entity-switcher">
+      <button type="button" id="btnTlSuspect" class="entity-tab-btn active" onclick="switchTimelineView('suspect')"> Police Case Progression</button>
+      <button type="button" id="btnTlVictim" class="entity-tab-btn" onclick="switchTimelineView('victim')"> Complainant & Lab Audit Events</button>
+    </div>
+
+    <div class="card"><div class="tline" id="timelineList"></div></div>
+  </section>
+
+  <!-- 05 Evidence Flow Map -->
+  <section id="tab-graph" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Evidentiary Asset & Inter-Departmental Flow Map</h1>
+        <p id="graphSubText">Relational mapping connecting Police Department, Case Records, Forensic Lab, Accused, and Court.</p>
+      </div>
+      <button type="button" class="btn" onclick="switchTab('custody')">View Chain of Custody →</button>
+    </div>
+    <div class="card">
+      <canvas id="graphCanvas" width="1080" height="460" style="width:100%; background:var(--panel-2); border-radius:8px; display:block;"></canvas>
+      <div id="graphLegendBottom" style="display:flex; gap:20px; margin-top:14px; font-size:12px; color:var(--ink-dim); flex-wrap:wrap;">
+        <!-- Injected Dynamically by app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 Chain of Custody -->
+  <section id="tab-custody" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Immutable Chain of Custody (Blockchain Ledger)</h1>
+        <p>Cryptographic audit trail recording every officer action, evidence transfer, and integrity check.</p>
+      </div>
+      <button type="button" class="btn" onclick="switchTab('report')">Proceed to Court e-Dossier →</button>
+    </div>
+    <div class="card" style="padding:0;">
+      <div class="log-row head"><div>Timestamp (UTC)</div><div>Authorized Officer</div><div>Official Case Action</div><div>Chained SHA-256 Seal</div></div>
+      <div id="custodyList"></div>
+    </div>
+  </section>
+
+  <!-- 07 Court e-Dossier -->
+  <section id="tab-report" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Court-Admissible Case e-Dossier</h1>
+        <h5><i>Official Electronic Record Certificate under Section 63 Bharatiya Sakshya Adhiniyam (BSA), 2023</i></h5>
+      </div>
+    </div>
+    <div class="card" style="max-width:680px;">
+      <p style="font-size:13px; color:var(--ink-dim); line-height:1.6; margin-top:0;">
+        Generates an integrated master judicial package containing the FIR Record, Witness Statements, Seizure Memos, FSL Lab Analysis Certificate, Evidence Flow Map, and complete Block Ledger Chain of Custody.
+      </p>
+      <div style="display:flex; gap:12px; margin-top:18px;">
+        <button type="button" class="btn amber" onclick="downloadForensicPDF()">Download Certified Court Dossier (.PDF) ⇩</button>
+        <button type="button" class="btn secondary" onclick="downloadForensicReport()">Export Case Manifest (.TXT)</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
