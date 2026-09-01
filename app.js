@@ -1,3 +1,4 @@
+
 async function computeRealSHA256(message) {
   const msgUint8 = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
@@ -34,7 +35,7 @@ const state = {
   custody: []
 };
 
-// Generates case records based on user input with clean English descriptions
+// Generates case records based on user input with detailed Case, Suspect, and Victim details
 function buildCaseRecordsFromInput() {
   const now = new Date();
   const dateBase = now.toISOString().slice(0, 10);
@@ -47,7 +48,19 @@ function buildCaseRecordsFromInput() {
       name: `FIR_${state.firNo.replace(/[^a-zA-Z0-9]/g, '_')}_Record.pdf`,
       classification: "Police / Court Record",
       version: "v1.0",
-      desc: `Official FIR registered at ${state.station} under ${state.sections}. Complaint lodged by ${state.complainant} against accused ${state.accused}. Registered for formal investigation.`,
+      desc: `Official FIR registered at ${state.station} under ${state.sections}. Complainant: ${state.complainant} vs Accused: ${state.accused}. Registered for formal investigation.`,
+      rawContent: `FIRST INFORMATION REPORT (SECTION 154 CrPC / BNSS 2023)
+--------------------------------------------------------------------------------
+FIR Reference Number : ${state.firNo}
+Police Station       : ${state.station}
+Crime Sections       : ${state.sections}
+Complainant Party    : ${state.complainant}
+Primary Accused      : ${state.accused}
+Court Warrant Ref    : ${state.warrant}
+Lead Investigator    : ${state.investigator} (Badge No: ${state.badge})
+
+CASE SYNOPSIS & STATUTORY PARTICULARS:
+A formal cognizable criminal complaint has been registered alleging unauthorized network penetration, source code breach, and financial damage. All digital evidence, communications, and seizure records have been impounded for forensic analysis under Section 63 Bharatiya Sakshya Adhiniyam (BSA), 2023.`,
       time: `${dateBase}T10:15:00Z`,
       uploadedBy: `${state.investigator} (${state.badge})`
     },
@@ -59,6 +72,13 @@ function buildCaseRecordsFromInput() {
       classification: "Confidential",
       version: "v1.0",
       desc: `Formal statement of key witness recording chronological sequence of communication, meetings, and activities related to ${state.accused}.`,
+      rawContent: `RECORD OF EXAMINATION OF WITNESS (SECTION 180 BNSS)
+--------------------------------------------------------------------------------
+Case FIR Ref: ${state.firNo} | Investigating Station: ${state.station}
+Accused Referenced: ${state.accused}
+
+Statement of Witness:
+The witness deposed regarding physical meetings and encrypted transfers involving accused ${state.accused}. Confirmed the delivery of storage media and unauthorized system credentials. The deposition has been digitally signed and timestamped into the case ledger.`,
       time: `${dateBase}T14:30:00Z`,
       uploadedBy: `${state.investigator} (${state.badge})`
     },
@@ -70,6 +90,15 @@ function buildCaseRecordsFromInput() {
       classification: "Custody Asset Record",
       version: "v1.0",
       desc: `Formal seizure memo prepared on spot: Physical and digital articles seized from possession of accused ${state.accused}. Transferred to secure custody.`,
+      rawContent: `EVIDENCE SEIZURE MEMORANDUM (ZABTI PANCHNAMA)
+--------------------------------------------------------------------------------
+Case FIR Ref: ${state.firNo} | Seized from: ${state.accused}
+
+Recovered Evidentiary Articles:
+1. Primary Mobile Handset (IMEI Verified, Hardware Write-Blocker Attached)
+2. SanDisk Extreme 2TB NVMe External Drive
+3. Cellular Tower Call Detail Records (CDR) and IPDR Dumps (180 Days)
+Seized in the presence of independent witnesses under authorization order ${state.warrant}.`,
       time: `${dateBase}T16:45:00Z`,
       uploadedBy: `${state.investigator} (${state.badge})`
     },
@@ -81,6 +110,11 @@ function buildCaseRecordsFromInput() {
       classification: "Certified Judicial Admissible",
       version: "v1.0",
       desc: `State Cyber Forensic Lab certified technical examination report confirming integrity verification, bitstream duplicate hashes, and recovered artifact analysis.`,
+      rawContent: `STATE FORENSIC SCIENCE LABORATORY (CYBER EXAMINATION DIVISION)
+--------------------------------------------------------------------------------
+Examination Certificate under Section 63 Bharatiya Sakshya Adhiniyam, 2023
+
+Master Bitstream Duplicate (.E01) was successfully acquired using physical hardware write-blockers. Bit-by-bit cryptographic SHA-256 hash matching confirms zero-byte delta between original seized SSD and lab copy. Artifact telemetry correlates directly with the crime timestamp.`,
       time: `${dateBase}T17:20:00Z`,
       uploadedBy: "FSL Cyber Examination Division"
     },
@@ -92,6 +126,15 @@ function buildCaseRecordsFromInput() {
       classification: "Judicial Court Record",
       version: "v1.0",
       desc: `Final Police Investigation Report (Charge Sheet) with comprehensive evidentiary index submitted before Judicial Magistrate for trial framing against ${state.accused}.`,
+      rawContent: `FINAL POLICE INVESTIGATION REPORT / CHARGE SHEET (SECTION 193 BNSS)
+--------------------------------------------------------------------------------
+Submitted Before : Court of the Chief Judicial Magistrate
+FIR Number       : ${state.firNo}
+Police Station   : ${state.station}
+Accused Charged  : ${state.accused}
+Offences Under   : ${state.sections}
+
+Evidentiary Index: Comprehensive SHA-256 digital seals, witness depositions, seizure memos, forensic certificates, and immutable blockchain chain of custody ledger attached for formal trial framing.`,
       time: `${dateBase}T18:00:00Z`,
       uploadedBy: `${state.investigator} (${state.badge})`
     }
@@ -174,7 +217,7 @@ function switchTab(tabId) {
     return;
   }
 
-  const tabs = ['setup', 'collect', 'vault', 'timeline', 'graph', 'custody', 'report'];
+  const tabs = ['setup', 'collect', 'vault', 'timeline', 'graph', 'custody', 'report', 'viewer'];
   tabs.forEach(t => {
     const sec = document.getElementById('tab-' + t);
     const btn = document.querySelector(`.nav button[onclick="switchTab('${t}')"]`);
@@ -182,6 +225,7 @@ function switchTab(tabId) {
     if (btn) btn.classList.toggle('active', t === tabId);
   });
   if (tabId === 'graph') setTimeout(drawGraph, 50);
+  if (tabId === 'viewer') populateDocumentViewerDropdown();
 }
 
 function switchUserRole(role) {
@@ -202,7 +246,6 @@ function initiateCaseAction() {
   const firNum = document.getElementById('inFirNum') ? document.getElementById('inFirNum').value.trim() : "";
   const warrant = document.getElementById('inNotes') ? document.getElementById('inNotes').value.trim() : "";
 
-  // Strict check: All mandatory fields must have a value
   if (!io || !badge || !station || !sections || !accused || !complainant || !firNum) {
     alert("VALIDATION ERROR: Please fill in all required fields (IO Name, Badge Number, Police Station, Crime Sections, Accused Name, Complainant Name, FIR Number) to proceed.");
     return;
@@ -317,7 +360,6 @@ async function handleManualDocUpload(event) {
   const file = fileInput.files[0];
   toast("Reading binary data & computing SHA-256 hash...");
   
-  // Real binary calculation
   const fileHash = await computeFileSHA256(file);
   const docTypeSelect = document.getElementById('inDocType');
   const docType = docTypeSelect ? docTypeSelect.value : "Additional Case Record";
@@ -330,6 +372,16 @@ async function handleManualDocUpload(event) {
     classification: "Confidential",
     version: "v1.0",
     desc: `Locally ingested physical file [${file.name}], size ${(file.size / 1024).toFixed(2)} KB. Embedded binary SHA-256 hash seal verified.`,
+    rawContent: `DEPOSITED EVIDENCE RECORD: ${file.name}
+--------------------------------------------------------------------------------
+Case FIR Number   : ${state.firNo}
+Type              : ${docType}
+File Size         : ${(file.size / 1024).toFixed(2)} KB
+Deposited By      : ${state.investigator} (${activeUserRole})
+Ingestion Date    : ${new Date().toISOString()}
+SHA-256 Signature : ${fileHash}
+
+Integrity Status: Cryptographically verified under Section 63 Bharatiya Sakshya Adhiniyam, 2023.`,
     hash: fileHash,
     originalHash: fileHash,
     uploadedBy: `${state.investigator} (${activeUserRole})`,
@@ -337,12 +389,9 @@ async function handleManualDocUpload(event) {
     isTampered: false
   };
 
-  // Prepend to top of document vault
   state.documents.unshift(newDoc);
-  
   await logCustody("Document Upload & Seal", activeUserRole, `Ingested [${file.name}] as ${docType} (SHA-256: ${fileHash.substring(0, 16)}...)`);
   
-  // Switch view to documents and re-render
   currentVaultView = 'documents';
   const btnD = document.getElementById('btnVaultDocs');
   const btnS = document.getElementById('btnVaultSuspect');
@@ -355,6 +404,44 @@ async function handleManualDocUpload(event) {
   renderTimeline();
   fileInput.value = "";
   toast(`File "${file.name}" sealed & added to Vault!`);
+}
+
+// Search Filter function for Step 03 Vault
+function filterVaultRecords(query) {
+  renderVault(query);
+}
+
+// Document Preview Modal (Triggered on title click)
+function viewDocumentModal(docId) {
+  const doc = state.documents.find(d => d.id === docId);
+  if (!doc) return;
+
+  const modal = document.getElementById('docModal');
+  const title = document.getElementById('modalDocTitle');
+  const body = document.getElementById('modalDocBody');
+
+  if (title) title.textContent = `[${doc.id}] ${doc.name}`;
+  if (body) {
+    body.innerHTML = `
+      <div style="background:var(--panel-2); padding:12px; border-radius:6px; border:1px solid var(--line); margin-bottom:12px;">
+        <b>Document Type:</b> ${doc.type}<br>
+        <b>Classification:</b> ${doc.classification} | <b>Version:</b> ${doc.version}<br>
+        <b>Sealed Timestamp:</b> ${fmtTime(doc.time)}<br>
+        <b>Depositing Officer:</b> ${doc.uploadedBy}<br>
+        <b>Cryptographic Seal (SHA-256):</b><br>
+        <span style="font-family:var(--mono); color:var(--seal); font-size:11px; word-break:break-all;">${doc.hash}</span><br>
+        <b>Status:</b> ${doc.isTampered ? '<span style="color:var(--alert); font-weight:bold;">TAMPERED / MISMATCH</span>' : '<span style="color:var(--seal); font-weight:bold;">INTACT & CERTIFIED (SEC 63 BSA)</span>'}
+      </div>
+      <label style="font-size:11px; color:var(--ink-dim); text-transform:uppercase; font-weight:600; display:block; margin-bottom:6px;">Decrypted Electronic Record Preview:</label>
+      <pre style="background:#0D1117; color:#E6EDF3; padding:12px; border-radius:6px; font-size:12px; font-family:var(--mono); white-space:pre-wrap; border:1px solid var(--line); max-height:220px; overflow-y:auto; line-height:1.6;">${doc.rawContent || doc.desc}</pre>
+    `;
+  }
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeDocModal() {
+  const modal = document.getElementById('docModal');
+  if (modal) modal.style.display = 'none';
 }
 
 // 04 Live Tamper Detection Tool (Judge Demo)
@@ -393,7 +480,7 @@ function switchVaultView(entity) {
   renderVault();
 }
 
-function renderVault() {
+function renderVault(searchFilter = "") {
   const stats = document.getElementById('vaultStats');
   const list = document.getElementById('evList');
   if (!list) return;
@@ -404,8 +491,15 @@ function renderVault() {
     return;
   }
 
-  // View 1: Case Legal Documents
+  // View 1: Case Legal Documents (With Search Filter)
   if (currentVaultView === 'documents') {
+    const filteredDocs = state.documents.filter(d => 
+      d.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      d.type.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      d.rawContent.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      d.hash.toLowerCase().includes(searchFilter.toLowerCase())
+    );
+
     const tamperedCount = state.documents.filter(d => d.isTampered).length;
     if (stats) {
       stats.innerHTML = `
@@ -416,7 +510,7 @@ function renderVault() {
       `;
     }
 
-    state.documents.forEach(doc => {
+    filteredDocs.forEach(doc => {
       const row = document.createElement('div');
       row.className = `ev-row ${doc.isTampered ? 'suspicious-row' : ''}`;
 
@@ -424,7 +518,7 @@ function renderVault() {
         <div><span class="tag ${doc.isTampered ? 'tampered' : (doc.tag || 'statement')}">${doc.type}</span></div>
         <div>
           <div style="font-weight:600; font-size:13px; color:var(--ink);">
-            <b>[${doc.id}]</b> ${doc.name} <small style="color:var(--ink-dim);">(${doc.version})</small>
+            <b>[${doc.id}]</b> <span class="doc-link" onclick="viewDocumentModal('${doc.id}')" title="Click to open/view document details">${doc.name}</span> <small style="color:var(--ink-dim);">(${doc.version})</small>
             ${doc.isTampered ? `<span class="tag tampered" style="margin-left:6px;">HASH MISMATCH</span>` : `<span class="tag" style="background:rgba(62,207,142,0.15); color:var(--seal); margin-left:6px;">VERIFIED</span>`}
           </div>
           <div style="font-size:11.5px; color:var(--ink-dim); margin-top:3px;">${doc.desc}</div>
@@ -690,7 +784,6 @@ async function downloadForensicPDF() {
   const accent = [62, 207, 142];
   const purpleDoc = [76, 29, 149];
 
-  // Header Banner
   doc.setFillColor(...primary);
   doc.rect(0, 0, 210, 30, 'F');
 
@@ -715,7 +808,7 @@ async function downloadForensicPDF() {
   doc.setDrawColor(200, 200, 200);
   doc.line(14, 48, 196, 48);
 
-  // Table 1: Case Parameters
+  // Table 1: Case Details
   doc.autoTable({
     startY: 52,
     head: [['Case Field', 'Official Police Record Details']],
@@ -732,7 +825,7 @@ async function downloadForensicPDF() {
     styles: { fontSize: 8, cellPadding: 2 }
   });
 
-  // Table 2: Case Document Registry
+  // Table 2: Document Hash Registry
   let nextY = doc.lastAutoTable.finalY + 8;
   doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
@@ -765,9 +858,9 @@ async function downloadForensicPDF() {
     }
   });
 
-  // Table 3: Chain of Custody
+  // Section 3: Evidence Flow Map in PDF
   nextY = doc.lastAutoTable.finalY + 8;
-  if (nextY > 220) {
+  if (nextY > 190) {
     doc.addPage();
     nextY = 20;
   }
@@ -775,7 +868,29 @@ async function downloadForensicPDF() {
   doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...primary);
-  doc.text('2. IMMUTABLE CHAIN OF CUSTODY (BLOCKCHAIN LEDGER)', 14, nextY);
+  doc.text('2. INTER-DEPARTMENTAL EVIDENCE FLOW & LINKAGE GRAPH', 14, nextY);
+
+  const canvas = document.getElementById('graphCanvas');
+  if (canvas) {
+    try {
+      const graphImg = canvas.toDataURL('image/png', 1.0);
+      doc.addImage(graphImg, 'PNG', 14, nextY + 3, 182, 65);
+      nextY = nextY + 72;
+    } catch (e) {
+      nextY = nextY + 6;
+    }
+  }
+
+  if (nextY > 210) {
+    doc.addPage();
+    nextY = 20;
+  }
+
+  // Table 4: Chain of Custody
+  doc.setFontSize(10.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...primary);
+  doc.text('3. IMMUTABLE CHAIN OF CUSTODY (BLOCKCHAIN LEDGER)', 14, nextY);
 
   const custodyRows = state.custody.map(c => [
     c.time.slice(0, 19).replace('T', ' '),
@@ -839,14 +954,8 @@ Accused Entity : ${state.accused}
 Complainant    : ${state.complainant}
 Generated At   : ${new Date().toISOString()}
 
-================================================================================
-CASE DOCUMENT MANIFEST & SHA-256 DIGITAL SEALS
-================================================================================
 ${state.documents.map(d => `[${d.type}] ID: ${d.id} | Ver: ${d.version} | Classification: ${d.classification}\nTitle: "${d.name}"\nSummary: ${d.desc}\nSHA-256 Seal: ${d.hash}\nStatus: ${d.isTampered ? 'TAMPERED / MISMATCH' : 'INTACT & AUTHENTIC'}\n`).join('\n')}
 
-================================================================================
-IMMUTABLE CHAIN OF CUSTODY (BLOCKCHAIN AUDIT TRAIL)
-================================================================================
 ${state.custody.map(c => `${c.time} | ${c.actor} | ${c.action} — ${c.detail}\nBlock SHA-256: ${c.hash}\n`).join('\n')}
 `;
 
@@ -856,4 +965,64 @@ ${state.custody.map(c => `${c.time} | ${c.actor} | ${c.action} — ${c.detail}\n
   a.download = `${state.firNo.replace(/[^a-zA-Z0-9]/g, '_')}_Manifest.txt`;
   a.click();
   toast("Case Manifest Exported!");
+}
+
+// Helper to clearly show selected filename in Step 03
+function updateFileSelectionLabel(input) {
+  const statusEl = document.getElementById('fileSelectionStatus');
+  if (!statusEl) return;
+  if (input.files && input.files.length > 0) {
+    statusEl.textContent = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+    statusEl.style.color = 'var(--seal)';
+  } else {
+    statusEl.textContent = "No file selected";
+    statusEl.style.color = 'var(--ink-faint)';
+  }
+}
+
+// Search Filter function for Step 03 Vault
+function filterVaultRecords(query) {
+  renderVault(query);
+}
+
+// Dedicated Document Viewer Functions
+function populateDocumentViewerDropdown() {
+  const select = document.getElementById('viewerDocSelect');
+  if (!select) return;
+  select.innerHTML = '';
+
+  state.documents.forEach((doc) => {
+    const opt = document.createElement('option');
+    opt.value = doc.id;
+    opt.textContent = `[${doc.id}] ${doc.name} (${doc.type})`;
+    select.appendChild(opt);
+  });
+
+  if (state.documents.length > 0) {
+    renderSelectedDocumentInViewer(state.documents[0].id);
+  }
+}
+
+function renderSelectedDocumentInViewer(docId) {
+  const doc = state.documents.find(d => d.id === docId);
+  const area = document.getElementById('viewerDisplayArea');
+  if (!doc || !area) return;
+
+  area.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:14px;">
+      <div>
+        <h3 style="margin:0; color:var(--seal); font-size:16px;">${doc.name}</h3>
+        <span style="font-size:11px; color:var(--ink-dim); font-family:var(--mono);">Record ID: ${doc.id} | Classification: ${doc.classification} | Version: ${doc.version}</span>
+      </div>
+      <span class="tag ${doc.isTampered ? 'tampered' : 'fsl'}">${doc.isTampered ? 'COMPROMISED' : 'VERIFIED VALID'}</span>
+    </div>
+    
+    <div class="grid2" style="margin-bottom:14px;">
+      <div style="font-size:12px; color:var(--ink-dim);"><b>Author / Uploaded By:</b><br>${doc.uploadedBy}</div>
+      <div style="font-size:12px; color:var(--ink-dim);"><b>Cryptographic Hash (SHA-256):</b><br><span style="font-family:var(--mono); color:var(--seal); font-size:11px;">${doc.hash}</span></div>
+    </div>
+
+    <label style="font-size:11px; color:var(--ink-dim); text-transform:uppercase; font-weight:600; display:block; margin-bottom:6px;">Decrypted Electronic Record Payload:</label>
+    <pre style="background:#0D1117; color:#E6EDF3; padding:16px; border-radius:6px; font-size:12.5px; font-family:var(--mono); white-space:pre-wrap; border:1px solid var(--line); max-height:280px; overflow-y:auto; line-height:1.6;">${doc.rawContent || doc.desc}</pre>
+  `;
 }

@@ -9,138 +9,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <style>
-    :root {
-      --bg: #10141A;
-      --panel: #171C24;
-      --panel-2: #1D232D;
-      --line: #2A313C;
-      --ink: #E8EBEF;
-      --ink-dim: #8892A0;
-      --ink-faint: #5B6472;
-      --seal: #3ECF8E;
-      --seal-dim: #1F3B2F;
-      --amber: #E3A73E;
-      --alert: #E0654F;
-      --purple: #8B5CF6;
-      --blue: #38BDF8;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', -apple-system, sans-serif;
-    }
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0;
-      background: var(--bg); color: var(--ink);
-      font-family: var(--sans); min-height: 100vh;
-      display: flex;
-    }
-    .sidebar {
-      width: 260px; flex-shrink: 0;
-      background: var(--panel); border-right: 1px solid var(--line);
-      display: flex; flex-direction: column; padding: 22px 0;
-      z-index: 10;
-    }
-    .brand { padding: 0 20px 20px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
-    .brand .mark {
-      font-family: var(--mono); font-weight: 700; font-size: 19px;
-      letter-spacing: 1px; color: var(--seal);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--seal); box-shadow: 0 0 8px var(--seal); }
-    .brand .sub { font-size: 10px; color: var(--ink-faint); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
-    .nav button {
-      all: unset; cursor: pointer; padding: 11px 12px; border-radius: 6px;
-      font-size: 13px; color: var(--ink-dim); display: flex; align-items: center;
-      gap: 10px; transition: 0.15s;
-    }
-    .nav button .num { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); width: 18px; }
-    .nav button:hover { background: var(--panel-2); color: var(--ink); }
-    .nav button.active { background: var(--seal-dim); color: var(--seal); font-weight: 600; }
-    .nav button.active .num { color: var(--seal); }
-    .case-chip { margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--line); }
-    .case-chip .lbl { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; }
-    .case-chip .val { font-family: var(--mono); font-size: 13px; color: var(--amber); margin-top: 3px; font-weight: 600; }
-    main { flex: 1; padding: 34px 42px; overflow-y: auto; max-width: 1180px; z-index: 5; }
-    .page-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
-    .page-head h1 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
-    .page-head p { margin: 0; color: var(--ink-dim); font-size: 13px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px; margin-bottom: 18px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .grid3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px; }
-    label { display: block; font-size: 11.5px; color: var(--ink-dim); margin-bottom: 6px; text-transform: uppercase; font-weight: 600; }
-    input, select {
-      width: 100%; background: var(--panel-2); border: 1px solid var(--line);
-      color: var(--ink); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px;
-    }
-    .btn {
-      all: unset; cursor: pointer; background: var(--seal); color: #0A1510;
-      font-weight: 600; font-size: 13px; padding: 11px 20px; border-radius: 6px;
-      display: inline-flex; align-items: center; gap: 8px; transition: 0.15s;
-    }
-    .btn:hover { filter: brightness(1.08); }
-    .btn.secondary { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); }
-    .btn.amber { background: var(--amber); color: #221800; }
-    .btn.purple { background: #7C3AED; color: #FFFFFF; }
-    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
-    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-    .stat .n { font-family: var(--mono); font-size: 24px; color: var(--seal); font-weight: 600; }
-    .stat .l { font-size: 11.5px; color: var(--ink-dim); margin-top: 2px; }
     
-    .entity-switcher {
-      display: flex; gap: 8px; margin-bottom: 16px; background: var(--panel); padding: 6px; border-radius: 8px; border: 1px solid var(--line); width: fit-content;
-    }
-    .entity-tab-btn {
-      all: unset; cursor: pointer; padding: 7px 14px; border-radius: 5px; font-size: 12.5px; font-family: var(--mono); color: var(--ink-dim); transition: 0.15s;
-    }
-    .entity-tab-btn.active {
-      background: var(--panel-2); color: var(--amber); font-weight: 600; border: 1px solid var(--line);
-    }
-    .entity-tab-btn.victim-active {
-      background: rgba(56, 189, 248, 0.15); color: #38BDF8; font-weight: 600; border: 1px solid #0284C7;
-    }
-    .entity-tab-btn.doc-active {
-      background: rgba(139, 92, 246, 0.18); color: #C4B5FD; font-weight: 600; border: 1px solid #7C3AED;
-    }
-
-    .ev-row {
-      display: grid; grid-template-columns: 140px 1fr 170px 140px 110px;
-      gap: 14px; align-items: center; padding: 13px 14px; border-bottom: 1px solid var(--line); font-size: 13px;
-    }
-    .ev-row.head { color: var(--ink-faint); font-size: 10.5px; text-transform: uppercase; font-weight: 600; }
-    .tag { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-family: var(--mono); text-transform: uppercase; display: inline-block; font-weight: 600; }
-    .tag.fir { background: #1C2738; color: #58A6FF; border: 1px solid #1F6FEB; }
-    .tag.statement { background: #262138; color: #D2A8FF; border: 1px solid #8957E5; }
-    .tag.seizure { background: #2B2317; color: #E3B341; border: 1px solid #9E6A03; }
-    .tag.fsl { background: #1B2B23; color: #3FB950; border: 1px solid #238636; }
-    .tag.chargesheet { background: #331A1E; color: #FFA198; border: 1px solid #DA3633; }
-    .tag.tampered { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1px solid #EF4444; }
-    .hash { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
-    .verified { color: var(--seal); font-family: var(--mono); font-size: 11px; }
-
-    .tline { position: relative; padding-left: 26px; }
-    .tline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 1px; background: var(--line); }
-    .tl-item { position: relative; padding-bottom: 22px; }
-    .tl-item::before { content: ""; position: absolute; left: -25px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--seal); border: 2px solid var(--bg); }
-    .tl-time { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-bottom: 3px; }
-    .tl-body { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
-    
-    .log-row {
-      display: grid; grid-template-columns: 160px 140px 1fr 160px;
-      gap: 14px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 12.5px;
-    }
-    .log-row.head { color: var(--ink-faint); font-size: 10.5px; text-transform: uppercase; font-weight: 600; }
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; background: var(--panel-2);
-      border: 1px solid var(--seal); color: var(--ink); padding: 12px 18px; border-radius: 8px;
-      font-size: 13px; display: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-  </style>
 </head>
 <body>
-  
-  <div id="bg-slideshow"></div>
+
+  <!-- Cinematic Background Slideshow Container -->
+  <div id="bgSlideshow">
+    <div class="bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="bg-slide" style="background-image: url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="bg-slide" style="background-image: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="bg-slide" style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80');"></div>
+  </div>
   <div class="bg-overlay"></div>
+
 <div class="sidebar">
   <div class="brand">
     <div class="mark"><span class="dot"></span>PRAMAAN</div>
@@ -152,8 +33,9 @@
     <button type="button" onclick="switchTab('vault')"><span class="num">03</span>Digital Case Vault</button>
     <button type="button" onclick="switchTab('timeline')"><span class="num">04</span>Investigation Trail</button>
     <button type="button" onclick="switchTab('graph')"><span class="num">05</span>Evidence Flow Map</button>
-    <button type="button" onclick="switchTab('custody')"><span class="num">06</span>Chain of Custody</button>
+    <button type="button" onclick="switchTab('viewer')"><span class="num">06</span>Document Access</button>
     <button type="button" onclick="switchTab('report')"><span class="num">07</span>Court e-Dossier</button>
+    <button type="button" onclick="switchTab('custody')"><span class="num">08</span>Chain of Custody</button>
   </div>
   <div class="case-chip" id="caseChip" style="display:none;">
     <div class="lbl">Active FIR / Case</div>
@@ -235,33 +117,33 @@
     </div>
   </section>
 
-  <!-- 03 Case Vault -->
+  <!-- 03 Case Vault (View As removed, Upload panel layout fixed) -->
   <section id="tab-vault" style="display:none;">
-    <div class="page-head">
+    <div class="page-head" style="flex-wrap: wrap; gap: 12px;">
       <div>
         <h1>Secure Digital Case & Evidence Vault</h1>
-        <p>Section 63B BSA Cryptographically Verified Asset Repository</p>
+        <p>Section 63B BSA Cryptographically Verified Asset Repository (Click on any title to view/open document)</p>
       </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <select id="roleSelect" onchange="switchUserRole(this.value)" style="margin-bottom:0; padding:8px 10px; font-size:12px; width:auto;">
-          <option value="INVESTIGATING_OFFICER">View As: Investigating Officer (IO)</option>
-          <option value="SHO">View As: Station House Officer (SHO)</option>
-          <option value="FORENSIC_EXAMINER">View As: Forensic Lab Examiner</option>
-          <option value="PUBLIC_PROSECUTOR">View As: Public Prosecutor</option>
-          <option value="JUDGE">View As: Judicial Magistrate</option>
-        </select>
+      <div style="display:flex; gap:10px; align-items:center; margin-left: auto;">
         <button type="button" class="btn secondary" onclick="verifyHashesAction()">⚡ Verify All Hashes</button>
         <button type="button" class="btn" onclick="switchTab('timeline')">View Audit Trail →</button>
       </div>
     </div>
 
-    <!-- Live Document Upload Panel -->
+    <!-- Search Bar Option -->
+    <div class="card" style="padding: 14px 20px; margin-bottom: 14px;">
+      <label style="margin-bottom: 4px;">Search Vault Records (FIR, Suspect, Witness, or Hash)</label>
+      <input type="text" id="vaultSearchInput" oninput="filterVaultRecords(this.value)" placeholder="Type keyword to search case files, suspect name, or evidence..." style="margin-bottom: 0;">
+    </div>
+
+    <!-- Live Document Upload Panel (Fixed Alignment & Layout) -->
     <div class="card" style="border:1px dashed var(--purple); background:rgba(139,92,246,0.06);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <span style="font-weight:600; font-size:13px; color:#C4B5FD;">📄 Deposit New Case Record / Digital Evidence File</span>
         <span style="font-size:11px; font-family:var(--mono); color:var(--ink-dim);">Automated SHA-256 Binary Seal</span>
       </div>
-      <div class="grid3" style="align-items:center;">
+      
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 14px; align-items: center;">
         <div>
           <select id="inDocType" style="margin-bottom:0;">
             <option value="Witness Statement (Sec 180 BNSS)">Witness Statement (Sec 180 BNSS)</option>
@@ -272,11 +154,14 @@
             <option value="Supplementary Charge Sheet">Supplementary Charge Sheet (Sec 193 BNSS)</option>
           </select>
         </div>
+        
         <div>
-          <input type="file" id="inDocFile" style="margin-bottom:0; padding:7px;">
+          <input type="file" id="inDocFile" style="margin-bottom:0; padding:6px; background:var(--bg);" onchange="updateFileSelectionLabel(this)">
+          <div id="fileSelectionStatus" style="font-size:11px; font-family:var(--mono); color:var(--seal); margin-top:4px;">No file chosen</div>
         </div>
+
         <div>
-          <button type="button" class="btn purple" style="width:100%; justify-content:center;" onclick="handleManualDocUpload(event)">Upload & Seal Document</button>
+          <button type="button" class="btn purple" style="white-space: nowrap; height: 41px;" onclick="handleManualDocUpload(event)">Upload & Seal Document</button>
         </div>
       </div>
     </div>
@@ -322,7 +207,7 @@
         <h1>Evidentiary Asset & Inter-Departmental Flow Map</h1>
         <p id="graphSubText">Relational mapping connecting Police Department, Case Records, Forensic Lab, Accused, and Court.</p>
       </div>
-      <button type="button" class="btn" onclick="switchTab('custody')">View Chain of Custody →</button>
+      <button type="button" class="btn" onclick="switchTab('viewer')">View Document Access →</button>
     </div>
     <div class="card">
       <canvas id="graphCanvas" width="1080" height="460" style="width:100%; background:var(--panel-2); border-radius:8px; display:block;"></canvas>
@@ -332,18 +217,22 @@
     </div>
   </section>
 
-  <!-- 06 Chain of Custody -->
-  <section id="tab-custody" style="display:none;">
+  <!-- 06 Dedicated Document Access Section -->
+  <section id="tab-viewer" style="display:none;">
     <div class="page-head">
       <div>
-        <h1>Immutable Chain of Custody (Blockchain Ledger)</h1>
-        <p>Cryptographic audit trail recording every officer action, evidence transfer, and integrity check.</p>
+        <h1>Case Document Retrieval & Forensic Access</h1>
+        <p>Select any vaulted document or evidence file to inspect its full legal text and cryptographic metadata.</p>
       </div>
       <button type="button" class="btn" onclick="switchTab('report')">Proceed to Court e-Dossier →</button>
     </div>
-    <div class="card" style="padding:0;">
-      <div class="log-row head"><div>Timestamp (UTC)</div><div>Authorized Officer</div><div>Official Case Action</div><div>Chained SHA-256 Seal</div></div>
-      <div id="custodyList"></div>
+    <div class="card">
+      <label>Select Case Record to Inspect / View</label>
+      <select id="viewerDocSelect" onchange="renderSelectedDocumentInViewer(this.value)" style="max-width:500px; margin-bottom:18px;"></select>
+      
+      <div id="viewerDisplayArea" style="background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:20px; font-size:13px;">
+        <!-- Injected dynamically by app.js -->
+      </div>
     </div>
   </section>
 
@@ -354,6 +243,7 @@
         <h1>Court-Admissible Case e-Dossier</h1>
         <h5><i>Official Electronic Record Certificate under Section 63 Bharatiya Sakshya Adhiniyam (BSA), 2023</i></h5>
       </div>
+      <button type="button" class="btn" onclick="switchTab('custody')">View Chain of Custody →</button>
     </div>
     <div class="card" style="max-width:680px;">
       <p style="font-size:13px; color:var(--ink-dim); line-height:1.6; margin-top:0;">
@@ -365,9 +255,51 @@
       </div>
     </div>
   </section>
+
+  <!-- 08 Chain of Custody -->
+  <section id="tab-custody" style="display:none;">
+    <div class="page-head">
+      <div>
+        <h1>Immutable Chain of Custody (Blockchain Ledger)</h1>
+        <p>Cryptographic audit trail recording every officer action, evidence transfer, and integrity check.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0;">
+      <div class="log-row head"><div>Timestamp (UTC)</div><div>Authorized Officer</div><div>Official Case Action</div><div>Chained SHA-256 Seal</div></div>
+      <div id="custodyList"></div>
+    </div>
+  </section>
 </main>
 
+<!-- Document Retrieval & Preview Modal -->
+<div class="modal-overlay" id="docModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalDocTitle">Document Details</h2>
+      <button class="close-btn" onclick="closeDocModal()">&times;</button>
+    </div>
+    <div id="modalDocBody" style="font-size:13px; color:var(--ink); line-height:1.6;"></div>
+    <div style="margin-top:18px; text-align:right;">
+      <button type="button" class="btn secondary" onclick="closeDocModal()">Close Window</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
+
+<!-- Background Slideshow Script -->
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const slides = document.querySelectorAll('.bg-slide');
+    if (slides.length === 0) return;
+    let currentIdx = 0;
+    setInterval(() => {
+      slides[currentIdx].classList.remove('active');
+      currentIdx = (currentIdx + 1) % slides.length;
+      slides[currentIdx].classList.add('active');
+    }, 2000); // changes every 2 seconds
+  });
+</script>
 <script src="app.js"></script>
 </body>
 </html>
